@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only; copyright and attribution terms: LICENSE and NOTICE.
+// --- 1. CONFIGURACAO E LEITURA DOS DADOS ---
 const STORAGE_KEY = 'sorteador-config-v1';
 const CLASS_PATTERN = /^(\d+)([A-Za-zÀ-ÿ]+)-([A-Za-z])$/;
 const TBD = 'A definir';
@@ -10,13 +11,13 @@ const DEFAULT_CONFIG = {
   extra: []
 };
 
-const shuffle = (list) => {
-  const copy = [...list];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
+const parseLines = (text) =>
+  text.split('\n').map((line) => line.trim()).filter(Boolean);
+
+const parseClass = (name) => {
+  const match = CLASS_PATTERN.exec(name);
+  if (!match) return null;
+  return { name, year: Number(match[1]), course: match[2].toUpperCase(), shift: match[3].toUpperCase() };
 };
 
 const loadConfig = () => {
@@ -29,13 +30,14 @@ const loadConfig = () => {
   return structuredClone(DEFAULT_CONFIG);
 };
 
-const parseLines = (text) =>
-  text.split('\n').map((line) => line.trim()).filter(Boolean);
-
-const parseClass = (name) => {
-  const match = CLASS_PATTERN.exec(name);
-  if (!match) return null;
-  return { name, year: Number(match[1]), course: match[2].toUpperCase(), shift: match[3].toUpperCase() };
+// --- 2. EMBARALHAMENTO E MONTAGEM DAS EQUIPES ---
+const shuffle = (list) => {
+  const copy = [...list];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
 };
 
 // Distribui as turmas de cada ano entre as equipes sem repetir curso na mesma equipe.
@@ -102,6 +104,7 @@ const buildTeams = (config) => {
   return { years, teams: result };
 };
 
+// --- 3. GERACAO E VALIDACAO DO CODIGO DE SALVAMENTO ---
 const createDrawId = () => globalThis.crypto?.randomUUID?.()
   ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 
@@ -188,6 +191,7 @@ const decodeDraw = (value) => {
   }
 };
 
+// --- 4. ELEMENTOS E ESTADO GLOBAL DA INTERFACE ---
 const header = document.querySelector('#teams-header');
 const body = document.querySelector('#teams-body');
 const status = document.querySelector('#draw-status');
@@ -206,6 +210,7 @@ let layout = null;
 let revealed = 0;
 let currentSaveCode = '';
 
+// --- 5. RENDERIZACAO E ESTADO DO SORTEIO ---
 const hideCompletedDraw = () => {
   currentSaveCode = '';
   copyButton.disabled = true;
@@ -302,6 +307,7 @@ const reset = () => {
   }
 };
 
+// --- 6. EVENTOS DOS BOTOES E DOS CODIGOS ---
 document.querySelector('#draw-all').addEventListener('click', () => {
   if (!draw()) return;
   revealed = layout.teams.length;
@@ -383,6 +389,7 @@ restoreForm.addEventListener('submit', (event) => {
   }
 });
 
+// --- 7. DIALOGO E VALIDACAO DA CONFIGURACAO ---
 const dialog = document.querySelector('#settings-dialog');
 const classesField = document.querySelector('#cfg-classes');
 const extraField = document.querySelector('#cfg-extra');
@@ -433,4 +440,5 @@ document.querySelector('#settings-form').addEventListener('submit', (event) => {
   reset();
 });
 
+// --- 8. INICIALIZACAO DA PAGINA ---
 reset();
