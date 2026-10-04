@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hello world</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      margin: 0;
+      place-items: center;
+      background: #f2f6f4;
+      color: #18332b;
+      font-family: system-ui, sans-serif;
+    }
+
+    main {
+      text-align: center;
+    }
+
+    button {
+      padding: 0.75rem 1.25rem;
+      border: 0;
+      border-radius: 6px;
+      background: #176b52;
+      color: #fff;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    button:hover {
+      background: #10543f;
+    }
+
+    #message {
+      min-height: 1.5em;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Página de boas-vindas</h1>
+    <button id="hello-button" type="button">Dizer olá</button>
+    <p id="message" aria-live="polite"></p>
+  </main>
+
+  <script>
+    document.querySelector('#hello-button').addEventListener('click', () => {
+      document.querySelector('#message').textContent = 'Hello world!';
+    });
+  </script>
+</body>
+</html>
