@@ -3,55 +3,354 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hello world</title>
+  <meta name="theme-color" content="#f2f4ef">
+  <title>Sorteador de jogos</title>
   <style>
+    :root {
+      color-scheme: light;
+      --ink: #18332b;
+      --muted: #63736d;
+      --paper: #f2f4ef;
+      --surface: #fff;
+      --line: #d9e0d9;
+      --green: #176b52;
+      --green-dark: #10543f;
+      --lime: #d8f27a;
+      --coral: #e56b4b;
+    }
+
     * {
       box-sizing: border-box;
     }
 
     body {
-      display: grid;
+      min-width: 320px;
       min-height: 100vh;
       margin: 0;
-      place-items: center;
-      background: #f2f6f4;
-      color: #18332b;
-      font-family: system-ui, sans-serif;
-    }
-
-    main {
-      text-align: center;
+      background-color: var(--paper);
+      background-image: repeating-linear-gradient(
+        135deg,
+        transparent 0,
+        transparent 38px,
+        rgb(24 51 43 / 2%) 39px,
+        rgb(24 51 43 / 2%) 40px
+      );
+      color: var(--ink);
+      font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
     }
 
     button {
-      padding: 0.75rem 1.25rem;
-      border: 0;
-      border-radius: 6px;
-      background: #176b52;
-      color: #fff;
-      cursor: pointer;
       font: inherit;
     }
 
-    button:hover {
-      background: #10543f;
+    .page {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+      padding: 56px 32px 72px;
     }
 
-    #message {
+    .page-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 12px;
+      color: var(--green);
+      font-size: 0.78rem;
+      font-weight: 750;
+    }
+
+    .eyebrow::before {
+      width: 9px;
+      height: 9px;
+      border-radius: 2px;
+      background: var(--coral);
+      content: "";
+      transform: rotate(45deg);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 2.75rem;
+      font-weight: 500;
+      line-height: 1.1;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 44px;
+    }
+
+    .action-button {
+      display: flex;
+      min-height: 96px;
+      align-items: center;
+      gap: 18px;
+      padding: 20px 24px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      transition: transform 140ms ease, background-color 140ms ease;
+    }
+
+    .action-button:hover {
+      transform: translateY(-2px);
+    }
+
+    .action-button:focus-visible {
+      outline: 3px solid var(--coral);
+      outline-offset: 3px;
+    }
+
+    .action-button svg {
+      width: 28px;
+      height: 28px;
+      flex: 0 0 28px;
+    }
+
+    .action-button span {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .action-button--all {
+      background: var(--green);
+      color: #fff;
+    }
+
+    .action-button--all:hover {
+      background: var(--green-dark);
+    }
+
+    .action-button--one {
+      border-color: var(--line);
+      background: var(--lime);
+      color: var(--ink);
+    }
+
+    .action-button--one:hover {
+      background: #cbea68;
+    }
+
+    .status {
       min-height: 1.5em;
+      margin: -28px 0 28px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .table-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .team-count {
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      scrollbar-color: #a9b9af transparent;
+      scrollbar-width: thin;
+    }
+
+    table {
+      width: 100%;
+      min-width: 780px;
+      border-collapse: separate;
+      border-spacing: 0;
+      text-align: left;
+    }
+
+    th,
+    td {
+      width: 16.666%;
+      padding: 17px 18px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+
+    th:last-child,
+    td:last-child {
+      border-right: 0;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: var(--green-dark);
+      color: #fff;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    tbody td {
+      color: var(--ink);
+      font-size: 0.94rem;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f7f9f5;
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 36px 18px 48px;
+      }
+
+      .page-header {
+        margin-bottom: 24px;
+      }
+
+      h1 {
+        font-size: 2.25rem;
+      }
+
+      .actions {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 38px;
+      }
+
+      .action-button {
+        min-height: 76px;
+      }
+
+      .status {
+        margin-top: -24px;
+      }
+
+      th,
+      td {
+        padding: 15px 14px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
     }
   </style>
 </head>
 <body>
-  <main>
-    <h1>Página de boas-vindas</h1>
-    <button id="hello-button" type="button">Dizer olá</button>
-    <p id="message" aria-live="polite"></p>
+  <main class="page">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">ORGANIZAÇÃO DE PARTIDAS</p>
+        <h1>Sorteador de jogos</h1>
+      </div>
+    </header>
+
+    <section class="actions" aria-label="Opções de sorteio">
+      <button class="action-button action-button--all" id="draw-all" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 5h14v14H5z" />
+          <path d="M8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01" />
+        </svg>
+        <span>Sortear todos</span>
+      </button>
+      <button class="action-button action-button--one" id="draw-one" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 6h16M4 12h10M4 18h7" />
+          <path d="m17 15 3 3-3 3" />
+        </svg>
+        <span>Sortear um a um</span>
+      </button>
+    </section>
+    <p class="status" id="draw-status" aria-live="polite"></p>
+
+    <section aria-labelledby="teams-title">
+      <div class="table-heading">
+        <h2 id="teams-title">Equipes e turmas</h2>
+        <span class="team-count" id="team-count"></span>
+      </div>
+      <div class="table-scroll" role="region" aria-label="Tabela de equipes e turmas" tabindex="0">
+        <table>
+          <thead>
+            <tr id="teams-header"></tr>
+          </thead>
+          <tbody id="teams-body"></tbody>
+        </table>
+      </div>
+    </section>
   </main>
 
   <script>
-    document.querySelector('#hello-button').addEventListener('click', () => {
-      document.querySelector('#message').textContent = 'Hello world!';
+    const teams = [
+      { name: 'Equipe 1', classes: ['Turma 1', 'Turma 2', 'Turma 3', 'Turma 4'] },
+      { name: 'Equipe 2', classes: ['Turma 5', 'Turma 6', 'Turma 7', 'Turma 8'] },
+      { name: 'Equipe 3', classes: ['Turma 9', 'Turma 10', 'Turma 11', 'Turma 12'] },
+      { name: 'Equipe 4', classes: ['Turma 13', 'Turma 14', 'Turma 15', 'Turma 16'] },
+      { name: 'Equipe 5', classes: ['Turma 17', 'Turma 18', 'Turma 19', 'Turma 20'] },
+      { name: 'Equipe 6', classes: ['Turma 21', 'Turma 22', 'Turma 23', 'Turma 24'] }
+    ];
+
+    const header = document.querySelector('#teams-header');
+    const body = document.querySelector('#teams-body');
+    const rowCount = Math.max(...teams.map((team) => team.classes.length));
+
+    teams.forEach((team) => {
+      const cell = document.createElement('th');
+      cell.scope = 'col';
+      cell.textContent = team.name;
+      header.append(cell);
+    });
+
+    for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+      const row = document.createElement('tr');
+
+      teams.forEach((team) => {
+        const cell = document.createElement('td');
+        cell.textContent = team.classes[rowIndex] ?? '';
+        row.append(cell);
+      });
+
+      body.append(row);
+    }
+
+    const totalClasses = teams.reduce((total, team) => total + team.classes.length, 0);
+    document.querySelector('#team-count').textContent = `${teams.length} equipes · ${totalClasses} turmas`;
+
+    const status = document.querySelector('#draw-status');
+    document.querySelector('#draw-all').addEventListener('click', () => {
+      status.textContent = 'A lógica do sorteio será definida na próxima etapa.';
+    });
+    document.querySelector('#draw-one').addEventListener('click', () => {
+      status.textContent = 'A lógica do sorteio será definida na próxima etapa.';
     });
   </script>
 </body>
