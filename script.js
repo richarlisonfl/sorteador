@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-only; copyright and attribution terms: LICENSE and NOTICE.
 const STORAGE_KEY = 'sorteador-config-v1';
 const CLASS_PATTERN = /^(\d+)([A-Za-zÀ-ÿ]+)-([A-Za-z])$/;
 const TBD = 'A definir';
