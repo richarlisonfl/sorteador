@@ -14,6 +14,12 @@
         <p class="eyebrow">ORGANIZAÇÃO DE PARTIDAS</p>
         <h1>Sorteador de jogos</h1>
       </div>
+      <button class="settings-button" id="open-settings" type="button" aria-label="Configuração" title="Configuração">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+        </svg>
+      </button>
     </header>
 
     <section class="actions" aria-label="Opções de sorteio">
@@ -49,6 +55,23 @@
       </div>
     </section>
   </main>
+
+  <dialog class="settings" id="settings-dialog" aria-labelledby="settings-title">
+    <form id="settings-form" method="dialog">
+      <h2 id="settings-title">Configuração</h2>
+      <p class="settings-hint">Informe uma turma por linha no formato <strong>ano + curso + "-" + turno</strong> (ex.: 1ADM-A, 3MAB-B). Anos, cursos e turnos são lidos dessas turmas. Um curso com uma única turma no turno vira uma equipe própria.</p>
+      <label for="cfg-classes">Turmas do sorteio</label>
+      <textarea id="cfg-classes" rows="10" spellcheck="false"></textarea>
+      <label for="cfg-extra">Fora do sorteio (uma por linha, ex.: Ensino Superior)</label>
+      <textarea id="cfg-extra" rows="3" spellcheck="false"></textarea>
+      <p class="settings-error" id="settings-error" role="alert"></p>
+      <div class="settings-actions">
+        <button type="button" class="btn" id="settings-reset">Restaurar padrão</button>
+        <button type="button" class="btn" id="settings-cancel">Cancelar</button>
+        <button type="submit" class="btn btn--primary">Salvar</button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="script.js" defer></script>
 </body>
