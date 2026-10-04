@@ -207,7 +207,6 @@ let currentSaveCode = '';
 
 const hideCompletedDraw = () => {
   currentSaveCode = '';
-  printButton.disabled = true;
   copyButton.disabled = true;
   drawCode.textContent = 'Conclua um sorteio para gerar o código.';
   resultDate.textContent = 'Disponível ao concluir um sorteio.';
@@ -228,7 +227,6 @@ const showCompletedDraw = (payload = {
     dateStyle: 'short',
     timeStyle: 'short'
   }).format(new Date(payload.createdAt))} · Código ${payload.id}`;
-  printButton.disabled = false;
   copyButton.disabled = false;
 };
 
@@ -325,7 +323,24 @@ document.querySelector('#draw-one').addEventListener('click', () => {
   if (revealed === layout.teams.length) showCompletedDraw();
 });
 
-document.querySelector('#print-result').addEventListener('click', () => window.print());
+printButton.addEventListener('click', () => {
+  if (!layout || revealed !== layout.teams.length) {
+    status.textContent = 'Conclua o sorteio para imprimir o resultado.';
+    return;
+  }
+
+  if (typeof window.print !== 'function') {
+    status.textContent = 'Impressão indisponível neste navegador. Use Ctrl+P ou Cmd+P.';
+    return;
+  }
+
+  status.textContent = 'Se a janela de impressão não abrir, use Ctrl+P ou Cmd+P.';
+  try {
+    window.print();
+  } catch {
+    status.textContent = 'Não foi possível abrir a impressão. Use Ctrl+P ou Cmd+P.';
+  }
+});
 
 document.querySelector('#copy-code').addEventListener('click', async () => {
   try {
