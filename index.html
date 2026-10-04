@@ -40,6 +40,43 @@
     </section>
     <p class="status" id="draw-status" aria-live="polite"></p>
 
+    <details class="restore-draw">
+      <summary>Restaurar sorteio salvo</summary>
+      <form class="restore-form" id="restore-form">
+        <label for="restore-code">Código do sorteio</label>
+        <div class="restore-controls">
+          <input id="restore-code" name="restore-code" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+          <button class="btn btn--primary" type="submit">Restaurar</button>
+        </div>
+        <p class="restore-status" id="restore-status" aria-live="polite"></p>
+      </form>
+    </details>
+
+    <section class="result-tools" id="result-tools" aria-labelledby="result-title" hidden>
+      <div class="result-header">
+        <div>
+          <p class="eyebrow">SORTEIO COMPLETO</p>
+          <h2 id="result-title">Resultado pronto</h2>
+          <p class="result-date" id="result-date"></p>
+        </div>
+        <button class="btn btn--primary print-button" id="print-result" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2" />
+            <path d="M7 14h10v7H7zM17 11h.01" />
+          </svg>
+          <span>Imprimir resultado</span>
+        </button>
+      </div>
+      <div class="save-code">
+        <div>
+          <label for="draw-code">Código único de salvamento</label>
+          <output class="draw-code-value" id="draw-code"></output>
+        </div>
+        <button class="btn copy-button" id="copy-code" type="button">Copiar código</button>
+        <p class="copy-status" id="copy-status" aria-live="polite"></p>
+      </div>
+    </section>
+
     <section aria-labelledby="teams-title">
       <div class="table-heading">
         <h2 id="teams-title">Equipes e turmas</h2>

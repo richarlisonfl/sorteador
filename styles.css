@@ -381,3 +381,262 @@ td.row-label {
   background: #eef2ec;
   font-weight: 700;
 }
+
+.restore-draw {
+  margin: -20px 0 28px;
+}
+
+.restore-draw summary {
+  width: fit-content;
+  color: var(--green-dark);
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.restore-form {
+  max-width: 600px;
+  padding-top: 12px;
+}
+
+.restore-form label,
+.save-code label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.restore-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.restore-controls input {
+  min-width: 0;
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font: 0.9rem ui-monospace, Menlo, Consolas, monospace;
+}
+
+.restore-controls input:focus-visible {
+  outline: 3px solid var(--coral);
+  outline-offset: 2px;
+}
+
+.restore-status,
+.copy-status {
+  min-height: 1.4em;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.result-tools {
+  display: grid;
+  gap: 18px;
+  margin: 0 0 28px;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.result-tools[hidden] {
+  display: none;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.result-header .eyebrow {
+  margin-bottom: 6px;
+}
+
+.result-header h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.result-date {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.print-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  flex: 0 0 auto;
+}
+
+.print-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.save-code {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0 12px;
+}
+
+.draw-code-value {
+  display: block;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  font: 0.82rem/1.5 ui-monospace, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.copy-status {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+  .restore-draw {
+    margin-top: -18px;
+  }
+
+  .restore-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .result-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .save-code {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .copy-button {
+    justify-self: start;
+  }
+}
+
+@page {
+  size: landscape;
+  margin: 12mm;
+}
+
+@media print {
+  body {
+    min-width: 0;
+    background: #fff;
+    color: #111;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .page {
+    width: 100%;
+    padding: 0;
+  }
+
+  .page-header {
+    margin-bottom: 10mm;
+  }
+
+  .settings-button,
+  .actions,
+  .status,
+  .restore-draw,
+  .print-button,
+  .copy-button,
+  .copy-status,
+  .settings {
+    display: none !important;
+  }
+
+  .result-tools:not([hidden]) {
+    display: block;
+    margin-bottom: 8mm;
+    padding: 0;
+    border: 0;
+  }
+
+  .result-header {
+    margin-bottom: 4mm;
+  }
+
+  .result-header h2 {
+    font-size: 16pt;
+  }
+
+  .result-date {
+    font-size: 9pt;
+  }
+
+  .save-code {
+    display: block;
+    padding-top: 3mm;
+    border-top: 1px solid #bbb;
+  }
+
+  .save-code label {
+    margin-bottom: 1mm;
+    font-size: 8pt;
+  }
+
+  .draw-code-value {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 8pt;
+  }
+
+  .table-scroll {
+    overflow: visible;
+    border: 1px solid #aaa;
+    border-radius: 0;
+  }
+
+  table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  th,
+  td {
+    width: auto;
+    padding: 5px 6px;
+    font-size: 9pt;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  thead th {
+    position: static;
+    background: #e8eee8;
+    color: #111;
+  }
+
+  .pending {
+    color: #555;
+  }
+}

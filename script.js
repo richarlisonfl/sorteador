@@ -101,14 +101,133 @@ const buildTeams = (config) => {
   return { years, teams: result };
 };
 
+const createDrawId = () => globalThis.crypto?.randomUUID?.()
+  ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+
+const checksum = (value) => {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+};
+
+const encodeDraw = (payload) => {
+  const bytes = new TextEncoder().encode(JSON.stringify(payload));
+  let binary = '';
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  const encoded = btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+  return `SJ1.${encoded}.${checksum(encoded)}`;
+};
+
+const validateDraw = (payload) => {
+  if (!payload || payload.version !== 1 || typeof payload.id !== 'string' || !payload.id
+    || Number.isNaN(Date.parse(payload.createdAt))) {
+    throw new Error('O código não contém um sorteio válido.');
+  }
+
+  const savedConfig = payload.config;
+  const savedLayout = payload.layout;
+  if (!savedConfig || !Array.isArray(savedConfig.classes) || !Array.isArray(savedConfig.extra)
+    || !savedLayout || !Array.isArray(savedLayout.years) || !Array.isArray(savedLayout.teams)) {
+    throw new Error('O código não contém todos os dados do sorteio.');
+  }
+
+  const parsedClasses = savedConfig.classes.map(parseClass);
+  if (!parsedClasses.length || parsedClasses.some((item) => !item)
+    || savedConfig.extra.some((item) => typeof item !== 'string' || !item.trim())) {
+    throw new Error('O código contém uma configuração inválida.');
+  }
+
+  const names = [...savedConfig.classes, ...savedConfig.extra].map((name) => name.toUpperCase());
+  const expectedNames = new Set(names);
+  if (expectedNames.size !== names.length) throw new Error('O código contém turmas repetidas.');
+
+  const years = [...new Set(parsedClasses.map((item) => item.year))].sort((a, b) => b - a);
+  if (JSON.stringify(savedLayout.years) !== JSON.stringify(years) || !savedLayout.teams.length) {
+    throw new Error('O código contém uma tabela de sorteio inválida.');
+  }
+
+  const assigned = new Set();
+  savedLayout.teams.forEach((team) => {
+    if (!team || !(team.shift === null || typeof team.shift === 'string')
+      || !team.slots || typeof team.slots !== 'object' || Array.isArray(team.slots)) {
+      throw new Error('O código contém uma equipe inválida.');
+    }
+    Object.entries(team.slots).forEach(([year, name]) => {
+      const normalizedName = typeof name === 'string' ? name.toUpperCase() : '';
+      if (!years.includes(Number(year)) || !expectedNames.has(normalizedName) || assigned.has(normalizedName)) {
+        throw new Error('O código contém uma distribuição inválida.');
+      }
+      assigned.add(normalizedName);
+    });
+  });
+
+  if (assigned.size !== expectedNames.size) throw new Error('O código não inclui todas as turmas.');
+  buildTeams(savedConfig);
+};
+
+const decodeDraw = (value) => {
+  const match = /^SJ1\.([A-Za-z0-9_-]+)\.([a-f0-9]{8})$/i.exec(value.replace(/\s+/g, ''));
+  if (!match || checksum(match[1]) !== match[2].toLowerCase()) {
+    throw new Error('Código inválido ou digitado incorretamente.');
+  }
+
+  try {
+    const base64 = match[1].replace(/-/g, '+').replace(/_/g, '/');
+    const binary = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='));
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    const payload = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    validateDraw(payload);
+    return payload;
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('O código')) throw error;
+    throw new Error('Não foi possível ler esse código de sorteio.');
+  }
+};
+
 const header = document.querySelector('#teams-header');
 const body = document.querySelector('#teams-body');
 const status = document.querySelector('#draw-status');
 const teamCount = document.querySelector('#team-count');
+const resultTools = document.querySelector('#result-tools');
+const resultDate = document.querySelector('#result-date');
+const drawCode = document.querySelector('#draw-code');
+const copyStatus = document.querySelector('#copy-status');
+const restoreForm = document.querySelector('#restore-form');
+const restoreCode = document.querySelector('#restore-code');
+const restoreStatus = document.querySelector('#restore-status');
 
 let config = loadConfig();
 let layout = null;
 let revealed = 0;
+let currentSaveCode = '';
+
+const hideCompletedDraw = () => {
+  currentSaveCode = '';
+  resultTools.hidden = true;
+  drawCode.textContent = '';
+  resultDate.textContent = '';
+  copyStatus.textContent = '';
+};
+
+const showCompletedDraw = (payload = {
+  version: 1,
+  id: createDrawId(),
+  createdAt: new Date().toISOString(),
+  config: structuredClone(config),
+  layout: structuredClone(layout)
+}, saveCode = encodeDraw(payload)) => {
+  currentSaveCode = saveCode;
+  drawCode.textContent = saveCode.replace(/\.([A-Za-z0-9_-]+)\./, (_, encoded) =>
+    `.${encoded.match(/.{1,6}/g).join(' ')}.`);
+  resultDate.textContent = `Gerado em ${new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short'
+  }).format(new Date(payload.createdAt))} · Código ${payload.id}`;
+  resultTools.hidden = false;
+};
 
 const shiftLabel = (shift) => (shift ? `Turno ${shift}` : 'Fora do sorteio');
 
@@ -173,6 +292,7 @@ const draw = () => {
 };
 
 const reset = () => {
+  hideCompletedDraw();
   revealed = 0;
   if (draw()) {
     status.textContent = '';
@@ -185,6 +305,7 @@ document.querySelector('#draw-all').addEventListener('click', () => {
   revealed = layout.teams.length;
   status.textContent = 'Sorteio concluído.';
   render();
+  showCompletedDraw();
 });
 
 document.querySelector('#draw-one').addEventListener('click', () => {
@@ -192,11 +313,55 @@ document.querySelector('#draw-one').addEventListener('click', () => {
     if (!draw()) return;
     revealed = 0;
   }
+  hideCompletedDraw();
   revealed += 1;
   status.textContent = revealed === layout.teams.length
     ? 'Sorteio concluído.'
     : `Equipe ${revealed} sorteada. Clique novamente para a próxima.`;
   render();
+  if (revealed === layout.teams.length) showCompletedDraw();
+});
+
+document.querySelector('#print-result').addEventListener('click', () => window.print());
+
+document.querySelector('#copy-code').addEventListener('click', async () => {
+  try {
+    if (globalThis.navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(currentSaveCode);
+    } else {
+      const temporaryField = document.createElement('textarea');
+      temporaryField.value = currentSaveCode;
+      temporaryField.setAttribute('readonly', '');
+      temporaryField.style.position = 'fixed';
+      temporaryField.style.opacity = '0';
+      document.body.append(temporaryField);
+      temporaryField.select();
+      const copied = document.execCommand('copy');
+      temporaryField.remove();
+      if (!copied) throw new Error('Falha ao copiar');
+    }
+    copyStatus.textContent = 'Código copiado.';
+  } catch {
+    copyStatus.textContent = 'Não foi possível copiar automaticamente. Selecione e copie o código.';
+  }
+});
+
+restoreForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  try {
+    const code = restoreCode.value.trim().replace(/\s+/g, '');
+    const savedDraw = decodeDraw(code);
+    config = structuredClone(savedDraw.config);
+    layout = structuredClone(savedDraw.layout);
+    revealed = layout.teams.length;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    render();
+    showCompletedDraw(savedDraw, code);
+    status.textContent = 'Sorteio restaurado.';
+    restoreStatus.textContent = 'Sorteio restaurado com sucesso.';
+  } catch (error) {
+    restoreStatus.textContent = error.message;
+  }
 });
 
 const dialog = document.querySelector('#settings-dialog');
