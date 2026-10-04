@@ -191,10 +191,11 @@ const header = document.querySelector('#teams-header');
 const body = document.querySelector('#teams-body');
 const status = document.querySelector('#draw-status');
 const teamCount = document.querySelector('#team-count');
-const resultTools = document.querySelector('#result-tools');
 const resultDate = document.querySelector('#result-date');
 const drawCode = document.querySelector('#draw-code');
 const copyStatus = document.querySelector('#copy-status');
+const printButton = document.querySelector('#print-result');
+const copyButton = document.querySelector('#copy-code');
 const restoreForm = document.querySelector('#restore-form');
 const restoreCode = document.querySelector('#restore-code');
 const restoreStatus = document.querySelector('#restore-status');
@@ -206,9 +207,10 @@ let currentSaveCode = '';
 
 const hideCompletedDraw = () => {
   currentSaveCode = '';
-  resultTools.hidden = true;
-  drawCode.textContent = '';
-  resultDate.textContent = '';
+  printButton.disabled = true;
+  copyButton.disabled = true;
+  drawCode.textContent = 'Conclua um sorteio para gerar o código.';
+  resultDate.textContent = 'Disponível ao concluir um sorteio.';
   copyStatus.textContent = '';
 };
 
@@ -226,7 +228,8 @@ const showCompletedDraw = (payload = {
     dateStyle: 'short',
     timeStyle: 'short'
   }).format(new Date(payload.createdAt))} · Código ${payload.id}`;
-  resultTools.hidden = false;
+  printButton.disabled = false;
+  copyButton.disabled = false;
 };
 
 const shiftLabel = (shift) => (shift ? `Turno ${shift}` : 'Fora do sorteio');

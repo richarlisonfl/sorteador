@@ -356,6 +356,11 @@ tbody tr:nth-child(even) {
   color: #fff;
 }
 
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 th,
 td {
   width: auto;
@@ -382,21 +387,9 @@ td.row-label {
   font-weight: 700;
 }
 
-.restore-draw {
-  margin: -20px 0 28px;
-}
-
-.restore-draw summary {
-  width: fit-content;
-  color: var(--green-dark);
-  cursor: pointer;
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-
 .restore-form {
-  max-width: 600px;
-  padding-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
 }
 
 .restore-form label,
@@ -505,10 +498,6 @@ td.row-label {
 }
 
 @media (max-width: 640px) {
-  .restore-draw {
-    margin-top: -18px;
-  }
-
   .restore-controls {
     align-items: stretch;
     flex-direction: column;
@@ -555,7 +544,7 @@ td.row-label {
   .settings-button,
   .actions,
   .status,
-  .restore-draw,
+  .restore-form,
   .print-button,
   .copy-button,
   .copy-status,
