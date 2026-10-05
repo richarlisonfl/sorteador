@@ -45,10 +45,10 @@ O [`index.html`](index.html) descreve o conteúdo, sem implementar o sorteio:
 - O cabeçalho identifica o site e abre o diálogo de configuração.
 - A seção `actions` contém **Sortear todos** e **Sortear um a um**.
 - A seção **Equipes e turmas** contém uma tabela sem cabeçalhos ou linhas fixos. O JavaScript cria seu conteúdo a partir da configuração.
-- A seção `result-tools`, colocada abaixo da tabela, reúne impressão, código de salvamento e restauração.
+- A seção `ferramentas-resultado`, colocada abaixo da tabela, reúne impressão, código de salvamento e restauração.
 - O `<dialog>` contém o formulário de configuração. O navegador fornece o comportamento modal e o JavaScript valida os campos.
 
-Os identificadores como `draw-all`, `teams-body` e `restore-form` são pontos de conexão entre HTML e JavaScript. Se um `id` for alterado em um arquivo, a referência correspondente no outro também precisa ser atualizada. Rótulos, regiões e atributos `aria-live` ajudam leitores de tela a identificar controles e mensagens dinâmicas.
+Os identificadores como `sortear-todos`, `corpo-equipes` e `formulario-restauracao` são pontos de conexão entre HTML e JavaScript. Se um `id` for alterado em um arquivo, a referência correspondente no outro também precisa ser atualizada. Rótulos, regiões e atributos `aria-live` ajudam leitores de tela a identificar controles e mensagens dinâmicas. Atributos e APIs padronizados da plataforma, como `id`, `class`, `value` e `document.querySelector`, permanecem em inglês.
 
 ## Aparência e impressão
 
@@ -64,55 +64,55 @@ Ao imprimir, o navegador abre a própria janela de impressão. Escolha a opção
 
 ## Configuração das turmas
 
-No começo de [`script.js`](script.js), `STORAGE_KEY` identifica a chave do `localStorage` e `CLASS_PATTERN` valida os nomes das turmas. A expressão regular captura três partes: um ou mais dígitos para o ano, letras para o curso e uma letra depois do hífen para o turno. Por exemplo, `1ADM-A` significa ano 1, curso ADM, turno A.
+No começo de [`script.js`](script.js), `CHAVE_CONFIGURACAO` identifica a chave atual do `localStorage` e `PADRAO_TURMA` valida os nomes das turmas. A expressão regular captura três partes: um ou mais dígitos para o ano, letras para o curso e uma letra depois do hífen para o turno. Por exemplo, `1ADM-A` significa ano 1, curso ADM, turno A.
 
-`DEFAULT_CONFIG` fornece os valores usados quando ainda não há uma configuração salva ou quando os dados salvos não podem ser lidos. Uma configuração tem esta forma:
+`CONFIGURACAO_PADRAO` fornece os valores usados quando ainda não há uma configuração salva ou quando os dados salvos não podem ser lidos. Uma configuração tem esta forma:
 
 ```js
 {
-  classes: ['1INF-A', '1MAB-A', '1ADM-A'],
-  extra: ['Ensino Superior']
+  turmas: ['1INF-A', '1MAB-A', '1ADM-A'],
+  extras: ['Ensino Superior']
 }
 ```
 
-`classes` são as turmas consideradas pelas regras do sorteio. `extra` são nomes que aparecem como equipes fixas, fora da distribuição regular. O padrão do projeto cria turmas dos cursos INF, MAB e ADM para os anos 1, 2 e 3, nos turnos A e B.
+`turmas` são as classes consideradas pelas regras do sorteio. `extras` são nomes que aparecem como equipes fixas, fora da distribuição regular. O padrão do projeto cria turmas dos cursos INF, MAB e ADM para os anos 1, 2 e 3, nos turnos A e B.
 
-O botão de configuração abre o diálogo. Cada linha do campo corresponde a uma turma; o segundo campo recebe itens extras, também um por linha. O formulário rejeita linhas em formato inválido, configuração sem turmas e nomes repetidos. Ao salvar, a configuração é normalizada e armazenada em `localStorage` na chave `sorteador-config-v1`. Isso a mantém naquele navegador, mas não a sincroniza entre pessoas ou dispositivos. **Restaurar padrão** preenche os valores iniciais no formulário; é preciso salvar para aplicá-los.
+O botão de configuração abre o diálogo. Cada linha do campo corresponde a uma turma; o segundo campo recebe itens extras, também um por linha. O formulário rejeita linhas em formato inválido, configuração sem turmas e nomes repetidos. Ao salvar, a configuração é normalizada e armazenada em `localStorage` na chave `sorteador-configuracao-v1`. A função `carregarConfiguracao` também reconhece a chave e os campos antigos (`sorteador-config-v1`, `classes` e `extra`) e migra os dados para o formato atual. Isso mantém a configuração naquele navegador, mas não a sincroniza entre pessoas ou dispositivos. **Restaurar padrão** preenche os valores iniciais no formulário; é preciso salvar para aplicá-los.
 
 ## Regras do sorteio
 
-O JavaScript transforma cada nome válido em um objeto com `name`, `year`, `course` e `shift`. A função `buildTeams` usa esses dados para montar a tabela:
+O JavaScript transforma cada nome válido em um objeto com `nome`, `ano`, `curso` e `turno`. A função `montarEquipes` usa esses dados para montar a tabela:
 
 1. Anos e turnos são identificados e ordenados. Os anos aparecem do maior para o menor.
 2. As turmas são separadas por turno e agrupadas por curso.
 3. Cursos com uma única turma naquele turno viram equipes individuais. As demais turmas são distribuídas por ano.
-4. Para as turmas regulares, a quantidade de equipes de cada turno é baseada no maior número de turmas regulares de um mesmo ano. `fillTeams` tenta preencher essas equipes sem repetir o mesmo curso na mesma equipe, considerando todos os anos. Ela usa busca recursiva com alternativas aleatórias; se não encontrar uma distribuição válida, informa o erro em vez de exibir um sorteio inválido.
+4. Para as turmas regulares, a quantidade de equipes de cada turno é baseada no maior número de turmas regulares de um mesmo ano. `preencherEquipes` tenta preencher essas equipes sem repetir o mesmo curso na mesma equipe, considerando todos os anos. Ela usa busca recursiva com alternativas aleatórias; se não encontrar uma distribuição válida, informa o erro em vez de exibir um sorteio inválido.
 
-A função `shuffle` embaralha uma cópia da lista usando Fisher–Yates e `Math.random()`. Como toda aleatoriedade do navegador, isso não é uma auditoria ou garantia criptográfica de imparcialidade.
+A função `embaralhar` embaralha uma cópia da lista usando Fisher–Yates e `Math.random()`. Como toda aleatoriedade do navegador, isso não é uma auditoria ou garantia criptográfica de imparcialidade.
 
-Cada equipe tem `shift` e `slots`; `slots` associa um ano à turma daquela equipe. A função `render` converte essa estrutura em cabeçalhos e células HTML. Uma turma ausente naquele ano aparece como “A definir”. No modo um a um, equipes ainda não reveladas aparecem com um traço.
+Cada equipe tem `turno` e `vagas`; `vagas` associa um ano à turma daquela equipe. A função `renderizar` converte essa estrutura em cabeçalhos e células HTML. Uma turma ausente naquele ano aparece como “A definir”. No modo um a um, equipes ainda não reveladas aparecem com um traço.
 
 ### Dois modos de sorteio
 
 - **Sortear todos** cria uma nova distribuição, revela todas as equipes e conclui o resultado em um clique.
 - **Sortear um a um** revela uma equipe por clique. O código de salvamento e a impressão só ficam disponíveis quando a última equipe é revelada. Começar de novo após um resultado completo cria uma nova distribuição.
 
-O estado de exibição fica nas variáveis `layout` e `revealed`: `layout` contém os anos e equipes calculados; `revealed` indica quantas equipes já podem ser mostradas.
+O estado de exibição fica nas variáveis `distribuicao` e `equipesReveladas`: `distribuicao` contém os anos e equipes calculados; `equipesReveladas` indica quantas equipes já podem ser mostradas.
 
 ## Código de salvamento
 
-Ao concluir um sorteio, `showCompletedDraw` cria um objeto com:
+Ao concluir um sorteio, `exibirResultadoConcluido` cria um objeto com:
 
-- a versão do formato;
-- um identificador único e a data de criação;
-- a configuração usada;
-- a distribuição completa das equipes.
+- `versao`: versão do formato do objeto;
+- `identificador` e `dataCriacao`: identificação e data do sorteio;
+- `configuracao`: turmas e extras utilizados;
+- `distribuicao`: anos e equipes completas.
 
-`encodeDraw` serializa esse objeto como JSON, transforma os bytes em Base64 URL-safe e acrescenta uma soma de verificação. O código começa com `SJ1`, que identifica a versão atual. Os dados ficam dentro do próprio código: não há registro remoto nem banco de dados.
+`codificarSorteio` serializa esse objeto como JSON, transforma os bytes em Base64 URL-safe e acrescenta uma soma de verificação. Os novos códigos começam com `SJ2`. Ao restaurar um código `SJ1` antigo, `decodificarSorteio` converte seus campos para português e o resultado volta a ser exibido como `SJ2`. Os dados ficam dentro do próprio código: não há registro remoto nem banco de dados.
 
 **Para salvar:** use **Copiar código** ou imprima o resultado. Guarde o texto completo, sem alterar caracteres.
 
-**Para restaurar:** cole o código em **Restaurar usando um código salvo** e envie o formulário. `decodeDraw` verifica o formato e a soma; `validateDraw` confere configuração, anos, equipes, duplicatas e se todas as turmas estão representadas. Se estiver válido, a tabela é reconstruída com o resultado original.
+**Para restaurar:** cole o código em **Restaurar usando um código salvo** e envie o formulário. `decodificarSorteio` verifica o formato e a soma; `validarSorteio` confere configuração, anos, equipes, duplicatas e se todas as turmas estão representadas. Se estiver válido, a tabela é reconstruída com o resultado original.
 
 A soma de verificação detecta muitos erros acidentais de digitação, mas não é criptografia nem assinatura digital. O código não prova quem criou o sorteio e pode ficar longo quando há muitas turmas.
 
@@ -120,10 +120,10 @@ A soma de verificação detecta muitos erros acidentais de digitação, mas não
 
 Para estudar o projeto em etapas, siga esta ordem:
 
-1. Em [`index.html`](index.html), localize `draw-all`, `draw-one`, `teams-header`, `teams-body` e `result-tools`.
-2. Em [`script.js`](script.js), acompanhe `DEFAULT_CONFIG`, `parseClass` e `buildTeams` para entender os dados e as regras.
-3. Leia `render`, `draw-all` e `draw-one` para ver como o estado vira uma tabela interativa.
-4. Estude `encodeDraw`, `decodeDraw` e `validateDraw` para seguir o ciclo de salvar e restaurar sem servidor.
+1. Em [`index.html`](index.html), localize os `id`s `sortear-todos`, `sortear-uma-a-uma`, `cabecalho-equipes`, `corpo-equipes` e `ferramentas-resultado`.
+2. Em [`script.js`](script.js), acompanhe `CONFIGURACAO_PADRAO`, `analisarTurma` e `montarEquipes` para entender os dados e as regras.
+3. Leia `renderizar`, `sortear` e os eventos associados a `sortear-todos` e `sortear-uma-a-uma` para ver como o estado vira uma tabela interativa.
+4. Estude `codificarSorteio`, `decodificarSorteio` e `validarSorteio` para seguir o ciclo de salvar e restaurar sem servidor.
 5. Em [`styles.css`](styles.css), compare as regras da tela, a media query móvel e o bloco `@media print`.
 
 Ao alterar ou acrescentar um elemento, confira os `id`s usados pelo JavaScript e teste tanto uma tela estreita quanto a impressão. Mudanças nas regras de equipes devem ser testadas com configurações de anos, cursos e turnos diferentes.

@@ -1,444 +1,494 @@
-// SPDX-License-Identifier: GPL-3.0-only; copyright and attribution terms: LICENSE and NOTICE.
-// --- 1. CONFIGURACAO E LEITURA DOS DADOS ---
-const STORAGE_KEY = 'sorteador-config-v1';
-const CLASS_PATTERN = /^(\d+)([A-Za-zÀ-ÿ]+)-([A-Za-z])$/;
-const TBD = 'A definir';
+// SPDX-License-Identifier: GPL-3.0-only; termos de direitos autorais e atribuição: LICENSE e NOTICE.
+// --- 1. CONFIGURAÇÃO E LEITURA DOS DADOS ---
+const CHAVE_CONFIGURACAO = 'sorteador-configuracao-v1';
+const CHAVE_CONFIGURACAO_ANTIGA = 'sorteador-config-v1';
+const PADRAO_TURMA = /^(\d+)([A-Za-zÀ-ÿ]+)-([A-Za-z])$/;
+const ROTULO_A_DEFINIR = 'A definir';
 
-const DEFAULT_CONFIG = {
-  classes: ['INF', 'MAB', 'ADM'].flatMap((course) =>
-    ['A', 'B'].flatMap((shift) => [1, 2, 3].map((year) => `${year}${course}-${shift}`))
+const CONFIGURACAO_PADRAO = {
+  turmas: ['INF', 'MAB', 'ADM'].flatMap((curso) =>
+    ['A', 'B'].flatMap((turno) => [1, 2, 3].map((ano) => `${ano}${curso}-${turno}`))
   ),
-  extra: []
+  extras: []
 };
 
-const parseLines = (text) =>
-  text.split('\n').map((line) => line.trim()).filter(Boolean);
+const separarLinhas = (texto) =>
+  texto.split('\n').map((linha) => linha.trim()).filter(Boolean);
 
-const parseClass = (name) => {
-  const match = CLASS_PATTERN.exec(name);
-  if (!match) return null;
-  return { name, year: Number(match[1]), course: match[2].toUpperCase(), shift: match[3].toUpperCase() };
+const analisarTurma = (nome) => {
+  const correspondencia = PADRAO_TURMA.exec(nome);
+  if (!correspondencia) return null;
+  return { nome, ano: Number(correspondencia[1]), curso: correspondencia[2].toUpperCase(), turno: correspondencia[3].toUpperCase() };
 };
 
-const loadConfig = () => {
+const normalizarConfiguracao = (dados) => {
+  if (dados && Array.isArray(dados.turmas) && Array.isArray(dados.extras)) {
+    return { turmas: dados.turmas, extras: dados.extras };
+  }
+  if (dados && Array.isArray(dados.classes) && Array.isArray(dados.extra)) {
+    return { turmas: dados.classes, extras: dados.extra };
+  }
+  return null;
+};
+
+const carregarConfiguracao = () => {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (saved && Array.isArray(saved.classes) && Array.isArray(saved.extra)) return saved;
+    for (const chave of [CHAVE_CONFIGURACAO, CHAVE_CONFIGURACAO_ANTIGA]) {
+      const dadosSalvos = JSON.parse(localStorage.getItem(chave));
+      const configuracaoSalva = normalizarConfiguracao(dadosSalvos);
+      if (!configuracaoSalva) continue;
+      if (chave === CHAVE_CONFIGURACAO_ANTIGA) {
+        try {
+          localStorage.setItem(CHAVE_CONFIGURACAO, JSON.stringify(configuracaoSalva));
+        } catch {
+          // Mantém a configuração em memória se o navegador bloquear a migração.
+        }
+      }
+      return configuracaoSalva;
+    }
   } catch {
     // configuração inválida: usa o padrão
   }
-  return structuredClone(DEFAULT_CONFIG);
+  return structuredClone(CONFIGURACAO_PADRAO);
 };
 
 // --- 2. EMBARALHAMENTO E MONTAGEM DAS EQUIPES ---
-const shuffle = (list) => {
-  const copy = [...list];
-  for (let i = copy.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
+const embaralhar = (lista) => {
+  const copia = [...lista];
+  for (let indice = copia.length - 1; indice > 0; indice -= 1) {
+    const indiceAleatorio = Math.floor(Math.random() * (indice + 1));
+    [copia[indice], copia[indiceAleatorio]] = [copia[indiceAleatorio], copia[indice]];
   }
-  return copy;
+  return copia;
 };
 
 // Distribui as turmas de cada ano entre as equipes sem repetir curso na mesma equipe.
-const fillTeams = (years, classesByYear, teamCount) => {
-  const teams = Array.from({ length: teamCount }, () => ({}));
+const preencherEquipes = (anos, turmasPorAno, quantidadeEquipes) => {
+  const equipes = Array.from({ length: quantidadeEquipes }, () => ({}));
 
-  const place = (yearIndex) => {
-    if (yearIndex === years.length) return true;
-    const year = years[yearIndex];
-    const pool = shuffle(classesByYear.get(year) ?? []);
+  const posicionarAno = (indiceAno) => {
+    if (indiceAno === anos.length) return true;
+    const ano = anos[indiceAno];
+    const grupo = embaralhar(turmasPorAno.get(ano) ?? []);
 
-    const assign = (teamIndex, remaining) => {
-      if (teamIndex === teamCount) return place(yearIndex + 1);
-      const options = remaining.filter(
-        (item) => !Object.values(teams[teamIndex]).some((used) => used.course === item.course)
+    const atribuirTurmas = (indiceEquipe, restantes) => {
+      if (indiceEquipe === quantidadeEquipes) return posicionarAno(indiceAno + 1);
+      const opcoes = restantes.filter(
+        (turma) => !Object.values(equipes[indiceEquipe]).some((existente) => existente.curso === turma.curso)
       );
-      const candidates = remaining.length <= teamCount - teamIndex - 1 ? [...options, null] : options;
-      for (const choice of shuffle(candidates)) {
-        if (choice) teams[teamIndex][year] = choice;
-        const rest = choice ? remaining.filter((item) => item !== choice) : remaining;
-        if (assign(teamIndex + 1, rest)) return true;
-        delete teams[teamIndex][year];
+      const candidatas = restantes.length <= quantidadeEquipes - indiceEquipe - 1 ? [...opcoes, null] : opcoes;
+      for (const escolha of embaralhar(candidatas)) {
+        if (escolha) equipes[indiceEquipe][ano] = escolha;
+        const resto = escolha ? restantes.filter((turma) => turma !== escolha) : restantes;
+        if (atribuirTurmas(indiceEquipe + 1, resto)) return true;
+        delete equipes[indiceEquipe][ano];
       }
       return false;
     };
 
-    return assign(0, pool);
+    return atribuirTurmas(0, grupo);
   };
 
-  return place(0) ? teams : null;
+  return posicionarAno(0) ? equipes : null;
 };
 
-const buildTeams = (config) => {
-  const parsed = config.classes.map(parseClass);
-  const classes = parsed.filter(Boolean);
-  const years = [...new Set(classes.map((item) => item.year))].sort((a, b) => b - a);
-  const shifts = [...new Set(classes.map((item) => item.shift))].sort();
-  const result = [];
+const montarEquipes = (configuracao) => {
+  const turmasAnalisadas = configuracao.turmas.map(analisarTurma);
+  const turmas = turmasAnalisadas.filter(Boolean);
+  const anos = [...new Set(turmas.map((turma) => turma.ano))].sort((a, b) => b - a);
+  const turnos = [...new Set(turmas.map((turma) => turma.turno))].sort();
+  const resultado = [];
 
-  shifts.forEach((shift) => {
-    const inShift = classes.filter((item) => item.shift === shift);
-    const byCourse = new Map();
-    inShift.forEach((item) => byCourse.set(item.course, [...(byCourse.get(item.course) ?? []), item]));
+  turnos.forEach((turno) => {
+    const turmasNoTurno = turmas.filter((turma) => turma.turno === turno);
+    const gruposPorCurso = new Map();
+    turmasNoTurno.forEach((turma) => gruposPorCurso.set(turma.curso, [...(gruposPorCurso.get(turma.curso) ?? []), turma]));
 
-    const solo = [];
-    const regular = [];
-    byCourse.forEach((items) => (items.length === 1 ? solo : regular).push(...items));
+    const isoladas = [];
+    const regulares = [];
+    gruposPorCurso.forEach((grupo) => (grupo.length === 1 ? isoladas : regulares).push(...grupo));
 
-    const classesByYear = new Map();
-    regular.forEach((item) => classesByYear.set(item.year, [...(classesByYear.get(item.year) ?? []), item]));
-    const teamCount = Math.max(0, ...[...classesByYear.values()].map((items) => items.length));
+    const turmasPorAno = new Map();
+    regulares.forEach((turma) => turmasPorAno.set(turma.ano, [...(turmasPorAno.get(turma.ano) ?? []), turma]));
+    const quantidadeEquipes = Math.max(0, ...[...turmasPorAno.values()].map((grupo) => grupo.length));
 
-    if (teamCount > 0) {
-      const filled = fillTeams(years, classesByYear, teamCount);
-      if (!filled) throw new Error(`Não foi possível montar equipes válidas no turno ${shift}. Revise as turmas.`);
-      filled.forEach((slots) => result.push({ shift, slots: Object.fromEntries(Object.entries(slots).map(([y, c]) => [y, c.name])) }));
+    if (quantidadeEquipes > 0) {
+      const preenchidas = preencherEquipes(anos, turmasPorAno, quantidadeEquipes);
+      if (!preenchidas) throw new Error(`Não foi possível montar equipes válidas no turno ${turno}. Revise as turmas.`);
+      preenchidas.forEach((vagas) => resultado.push({ turno, vagas: Object.fromEntries(Object.entries(vagas).map(([ano, turma]) => [ano, turma.nome])) }));
     }
 
-    solo.forEach((item) => result.push({ shift, slots: { [item.year]: item.name } }));
+    isoladas.forEach((turma) => resultado.push({ turno, vagas: { [turma.ano]: turma.nome } }));
   });
 
-  config.extra.forEach((name) => result.push({ shift: null, slots: { [years[years.length - 1] ?? 1]: name }, fixed: true }));
+  configuracao.extras.forEach((nome) => resultado.push({ turno: null, vagas: { [anos[anos.length - 1] ?? 1]: nome }, fixa: true }));
 
-  return { years, teams: result };
+  return { anos, equipes: resultado };
 };
 
-// --- 3. GERACAO E VALIDACAO DO CODIGO DE SALVAMENTO ---
-const createDrawId = () => globalThis.crypto?.randomUUID?.()
+// --- 3. GERAÇÃO E VALIDAÇÃO DO CÓDIGO DE SALVAMENTO ---
+const criarIdentificadorSorteio = () => globalThis.crypto?.randomUUID?.()
   ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 
-const checksum = (value) => {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
+const calcularVerificacao = (valor) => {
+  let valorVerificacao = 2166136261;
+  for (let indice = 0; indice < valor.length; indice += 1) {
+    valorVerificacao ^= valor.charCodeAt(indice);
+    valorVerificacao = Math.imul(valorVerificacao, 16777619);
   }
-  return (hash >>> 0).toString(16).padStart(8, '0');
+  return (valorVerificacao >>> 0).toString(16).padStart(8, '0');
 };
 
-const encodeDraw = (payload) => {
-  const bytes = new TextEncoder().encode(JSON.stringify(payload));
-  let binary = '';
-  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
-  const encoded = btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
-  return `SJ1.${encoded}.${checksum(encoded)}`;
+const codificarSorteio = (dadosSorteio) => {
+  const octetos = new TextEncoder().encode(JSON.stringify(dadosSorteio));
+  let binario = '';
+  octetos.forEach((octeto) => { binario += String.fromCharCode(octeto); });
+  const codificado = btoa(binario).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+  return `SJ2.${codificado}.${calcularVerificacao(codificado)}`;
 };
 
-const validateDraw = (payload) => {
-  if (!payload || payload.version !== 1 || typeof payload.id !== 'string' || !payload.id
-    || Number.isNaN(Date.parse(payload.createdAt))) {
+const converterSorteioLegado = (dadosSorteio) => {
+  if (!dadosSorteio || dadosSorteio.version !== 1 || !dadosSorteio.config || !dadosSorteio.layout) {
+    throw new Error('O código não contém um sorteio compatível.');
+  }
+
+  const configuracaoLegada = normalizarConfiguracao(dadosSorteio.config);
+  if (!configuracaoLegada || !Array.isArray(dadosSorteio.layout.years) || !Array.isArray(dadosSorteio.layout.teams)) {
+    throw new Error('O código antigo não contém todos os dados do sorteio.');
+  }
+
+  return {
+    versao: 2,
+    identificador: dadosSorteio.id,
+    dataCriacao: dadosSorteio.createdAt,
+    configuracao: configuracaoLegada,
+    distribuicao: {
+      anos: dadosSorteio.layout.years,
+      equipes: dadosSorteio.layout.teams.map((equipe) => ({
+        turno: equipe.shift,
+        vagas: equipe.slots,
+        fixa: Boolean(equipe.fixed)
+      }))
+    }
+  };
+};
+
+const validarSorteio = (dadosSorteio) => {
+  if (!dadosSorteio || dadosSorteio.versao !== 2
+    || typeof dadosSorteio.identificador !== 'string' || !dadosSorteio.identificador
+    || Number.isNaN(Date.parse(dadosSorteio.dataCriacao))) {
     throw new Error('O código não contém um sorteio válido.');
   }
 
-  const savedConfig = payload.config;
-  const savedLayout = payload.layout;
-  if (!savedConfig || !Array.isArray(savedConfig.classes) || !Array.isArray(savedConfig.extra)
-    || !savedLayout || !Array.isArray(savedLayout.years) || !Array.isArray(savedLayout.teams)) {
+  const configuracaoSalva = dadosSorteio.configuracao;
+  const distribuicaoSalva = dadosSorteio.distribuicao;
+  if (!configuracaoSalva || !Array.isArray(configuracaoSalva.turmas) || !Array.isArray(configuracaoSalva.extras)
+    || !distribuicaoSalva || !Array.isArray(distribuicaoSalva.anos) || !Array.isArray(distribuicaoSalva.equipes)) {
     throw new Error('O código não contém todos os dados do sorteio.');
   }
 
-  const parsedClasses = savedConfig.classes.map(parseClass);
-  if (!parsedClasses.length || parsedClasses.some((item) => !item)
-    || savedConfig.extra.some((item) => typeof item !== 'string' || !item.trim())) {
+  const turmasAnalisadas = configuracaoSalva.turmas.map(analisarTurma);
+  if (!turmasAnalisadas.length || turmasAnalisadas.some((turma) => !turma)
+    || configuracaoSalva.extras.some((turma) => typeof turma !== 'string' || !turma.trim())) {
     throw new Error('O código contém uma configuração inválida.');
   }
 
-  const names = [...savedConfig.classes, ...savedConfig.extra].map((name) => name.toUpperCase());
-  const expectedNames = new Set(names);
-  if (expectedNames.size !== names.length) throw new Error('O código contém turmas repetidas.');
+  const nomesTurmas = [...configuracaoSalva.turmas, ...configuracaoSalva.extras].map((nome) => nome.toUpperCase());
+  const nomesEsperados = new Set(nomesTurmas);
+  if (nomesEsperados.size !== nomesTurmas.length) throw new Error('O código contém turmas repetidas.');
 
-  const years = [...new Set(parsedClasses.map((item) => item.year))].sort((a, b) => b - a);
-  if (JSON.stringify(savedLayout.years) !== JSON.stringify(years) || !savedLayout.teams.length) {
+  const anos = [...new Set(turmasAnalisadas.map((turma) => turma.ano))].sort((a, b) => b - a);
+  if (JSON.stringify(distribuicaoSalva.anos) !== JSON.stringify(anos) || !distribuicaoSalva.equipes.length) {
     throw new Error('O código contém uma tabela de sorteio inválida.');
   }
 
-  const assigned = new Set();
-  savedLayout.teams.forEach((team) => {
-    if (!team || !(team.shift === null || typeof team.shift === 'string')
-      || !team.slots || typeof team.slots !== 'object' || Array.isArray(team.slots)) {
+  const nomesAtribuidos = new Set();
+  distribuicaoSalva.equipes.forEach((equipe) => {
+    if (!equipe || !(equipe.turno === null || typeof equipe.turno === 'string')
+      || !equipe.vagas || typeof equipe.vagas !== 'object' || Array.isArray(equipe.vagas)) {
       throw new Error('O código contém uma equipe inválida.');
     }
-    Object.entries(team.slots).forEach(([year, name]) => {
-      const normalizedName = typeof name === 'string' ? name.toUpperCase() : '';
-      if (!years.includes(Number(year)) || !expectedNames.has(normalizedName) || assigned.has(normalizedName)) {
+    Object.entries(equipe.vagas).forEach(([ano, nome]) => {
+      const nomeNormalizado = typeof nome === 'string' ? nome.toUpperCase() : '';
+      if (!anos.includes(Number(ano)) || !nomesEsperados.has(nomeNormalizado) || nomesAtribuidos.has(nomeNormalizado)) {
         throw new Error('O código contém uma distribuição inválida.');
       }
-      assigned.add(normalizedName);
+      nomesAtribuidos.add(nomeNormalizado);
     });
   });
 
-  if (assigned.size !== expectedNames.size) throw new Error('O código não inclui todas as turmas.');
-  buildTeams(savedConfig);
+  if (nomesAtribuidos.size !== nomesEsperados.size) throw new Error('O código não inclui todas as turmas.');
+  montarEquipes(configuracaoSalva);
 };
 
-const decodeDraw = (value) => {
-  const match = /^SJ1\.([A-Za-z0-9_-]+)\.([a-f0-9]{8})$/i.exec(value.replace(/\s+/g, ''));
-  if (!match || checksum(match[1]) !== match[2].toLowerCase()) {
+const decodificarSorteio = (valor) => {
+  const correspondencia = /^SJ([12])\.([A-Za-z0-9_-]+)\.([a-f0-9]{8})$/i.exec(valor.replace(/\s+/g, ''));
+  if (!correspondencia || calcularVerificacao(correspondencia[2]) !== correspondencia[3].toLowerCase()) {
     throw new Error('Código inválido ou digitado incorretamente.');
   }
 
   try {
-    const base64 = match[1].replace(/-/g, '+').replace(/_/g, '/');
-    const binary = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='));
-    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
-    const payload = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
-    validateDraw(payload);
-    return payload;
-  } catch (error) {
-    if (error instanceof Error && error.message.startsWith('O código')) throw error;
+    const textoBase64 = correspondencia[2].replace(/-/g, '+').replace(/_/g, '/');
+    const binario = atob(textoBase64.padEnd(Math.ceil(textoBase64.length / 4) * 4, '='));
+    const octetos = Uint8Array.from(binario, (caractere) => caractere.charCodeAt(0));
+    const dadosLidos = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(octetos));
+    const dadosSorteio = Number(correspondencia[1]) === 1 ? converterSorteioLegado(dadosLidos) : dadosLidos;
+    validarSorteio(dadosSorteio);
+    return dadosSorteio;
+  } catch (erro) {
+    if (erro instanceof Error && erro.message.startsWith('O código')) throw erro;
     throw new Error('Não foi possível ler esse código de sorteio.');
   }
 };
 
 // --- 4. ELEMENTOS E ESTADO GLOBAL DA INTERFACE ---
-const header = document.querySelector('#teams-header');
-const body = document.querySelector('#teams-body');
-const status = document.querySelector('#draw-status');
-const teamCount = document.querySelector('#team-count');
-const resultDate = document.querySelector('#result-date');
-const drawCode = document.querySelector('#draw-code');
-const copyStatus = document.querySelector('#copy-status');
-const printButton = document.querySelector('#print-result');
-const copyButton = document.querySelector('#copy-code');
-const restoreForm = document.querySelector('#restore-form');
-const restoreCode = document.querySelector('#restore-code');
-const restoreStatus = document.querySelector('#restore-status');
+const cabecalhoTabela = document.querySelector('#cabecalho-equipes');
+const corpoTabela = document.querySelector('#corpo-equipes');
+const statusSorteio = document.querySelector('#status-sorteio');
+const quantidadeEquipes = document.querySelector('#quantidade-equipes');
+const dataResultado = document.querySelector('#data-resultado');
+const codigoSorteio = document.querySelector('#codigo-salvamento');
+const statusCopia = document.querySelector('#status-copia');
+const botaoImprimir = document.querySelector('#imprimir-resultado');
+const botaoCopiar = document.querySelector('#copiar-codigo');
+const formularioRestauracao = document.querySelector('#formulario-restauracao');
+const campoCodigoRestauracao = document.querySelector('#codigo-restauracao');
+const statusRestauracao = document.querySelector('#status-restauracao');
 
-let config = loadConfig();
-let layout = null;
-let revealed = 0;
-let currentSaveCode = '';
+let configuracao = carregarConfiguracao();
+let distribuicao = null;
+let equipesReveladas = 0;
+let codigoSalvamentoAtual = '';
 
-// --- 5. RENDERIZACAO E ESTADO DO SORTEIO ---
-const hideCompletedDraw = () => {
-  currentSaveCode = '';
-  copyButton.disabled = true;
-  drawCode.textContent = 'Conclua um sorteio para gerar o código.';
-  resultDate.textContent = 'Disponível ao concluir um sorteio.';
-  copyStatus.textContent = '';
+// --- 5. RENDERIZAÇÃO E ESTADO DO SORTEIO ---
+const limparResultadoConcluido = () => {
+  codigoSalvamentoAtual = '';
+  botaoCopiar.disabled = true;
+  codigoSorteio.textContent = 'Conclua um sorteio para gerar o código.';
+  dataResultado.textContent = 'Disponível ao concluir um sorteio.';
+  statusCopia.textContent = '';
 };
 
-const showCompletedDraw = (payload = {
-  version: 1,
-  id: createDrawId(),
-  createdAt: new Date().toISOString(),
-  config: structuredClone(config),
-  layout: structuredClone(layout)
-}, saveCode = encodeDraw(payload)) => {
-  currentSaveCode = saveCode;
-  drawCode.textContent = saveCode.replace(/\.([A-Za-z0-9_-]+)\./, (_, encoded) =>
-    `.${encoded.match(/.{1,6}/g).join(' ')}.`);
-  resultDate.textContent = `Gerado em ${new Intl.DateTimeFormat('pt-BR', {
+const exibirResultadoConcluido = (dadosSorteio = {
+  versao: 2,
+  identificador: criarIdentificadorSorteio(),
+  dataCriacao: new Date().toISOString(),
+  configuracao: structuredClone(configuracao),
+  distribuicao: structuredClone(distribuicao)
+}, codigoSalvamento = codificarSorteio(dadosSorteio)) => {
+  codigoSalvamentoAtual = codigoSalvamento;
+  codigoSorteio.textContent = codigoSalvamento.replace(/\.([A-Za-z0-9_-]+)\./, (_, trechoCodificado) =>
+    `.${trechoCodificado.match(/.{1,6}/g).join(' ')}.`);
+  dataResultado.textContent = `Gerado em ${new Intl.DateTimeFormat('pt-BR', {
     dateStyle: 'short',
     timeStyle: 'short'
-  }).format(new Date(payload.createdAt))} · Código ${payload.id}`;
-  copyButton.disabled = false;
+  }).format(new Date(dadosSorteio.dataCriacao))} · Código ${dadosSorteio.identificador}`;
+  botaoCopiar.disabled = false;
 };
 
-const shiftLabel = (shift) => (shift ? `Turno ${shift}` : 'Fora do sorteio');
+const rotuloTurno = (turno) => (turno ? `Turno ${turno}` : 'Fora do sorteio');
 
-const render = () => {
-  const { years, teams } = layout;
-  header.replaceChildren();
-  body.replaceChildren();
+const renderizar = () => {
+  const { anos, equipes } = distribuicao;
+  cabecalhoTabela.replaceChildren();
+  corpoTabela.replaceChildren();
 
-  const corner = document.createElement('th');
-  corner.scope = 'col';
-  corner.className = 'row-label';
-  corner.textContent = 'Ano';
-  header.append(corner);
+  const celulaAno = document.createElement('th');
+  celulaAno.scope = 'col';
+  celulaAno.className = 'rotulo-linha';
+  celulaAno.textContent = 'Ano';
+  cabecalhoTabela.append(celulaAno);
 
-  teams.forEach((team, index) => {
-    const cell = document.createElement('th');
-    cell.scope = 'col';
-    cell.append(`Equipe ${index + 1}`);
-    const small = document.createElement('small');
-    small.textContent = shiftLabel(team.shift);
-    cell.append(small);
-    header.append(cell);
+  equipes.forEach((equipe, indice) => {
+    const celula = document.createElement('th');
+    celula.scope = 'col';
+    celula.append(`Equipe ${indice + 1}`);
+    const detalheTurno = document.createElement('small');
+    detalheTurno.textContent = rotuloTurno(equipe.turno);
+    celula.append(detalheTurno);
+    cabecalhoTabela.append(celula);
   });
 
-  const rows = years.length ? years : [1];
-  rows.forEach((year) => {
-    const row = document.createElement('tr');
-    const label = document.createElement('th');
-    label.scope = 'row';
-    label.className = 'row-label';
-    label.textContent = `${year}º ano`;
-    row.append(label);
+  const linhas = anos.length ? anos : [1];
+  linhas.forEach((ano) => {
+    const linha = document.createElement('tr');
+    const rotuloAno = document.createElement('th');
+    rotuloAno.scope = 'row';
+    rotuloAno.className = 'rotulo-linha';
+    rotuloAno.textContent = `${ano}º ano`;
+    linha.append(rotuloAno);
 
-    teams.forEach((team, index) => {
-      const cell = document.createElement('td');
-      if (index >= revealed) {
-        cell.textContent = '—';
-        cell.className = 'pending';
-      } else if (team.slots[year]) {
-        cell.textContent = team.slots[year];
+    equipes.forEach((equipe, indice) => {
+      const celula = document.createElement('td');
+      if (indice >= equipesReveladas) {
+        celula.textContent = '—';
+        celula.className = 'equipe-pendente';
+      } else if (equipe.vagas[ano]) {
+        celula.textContent = equipe.vagas[ano];
       } else {
-        cell.textContent = TBD;
-        cell.className = 'placeholder';
+        celula.textContent = ROTULO_A_DEFINIR;
+        celula.className = 'celula-sem-turma';
       }
-      row.append(cell);
+      linha.append(celula);
     });
-    body.append(row);
+    corpoTabela.append(linha);
   });
 
-  const totalClasses = teams.reduce((total, team) => total + Object.keys(team.slots).length, 0);
-  teamCount.textContent = `${teams.length} equipes · ${totalClasses} turmas`;
+  const totalTurmas = equipes.reduce((acumulado, equipe) => acumulado + Object.keys(equipe.vagas).length, 0);
+  quantidadeEquipes.textContent = `${equipes.length} equipes · ${totalTurmas} turmas`;
 };
 
-const draw = () => {
+const sortear = () => {
   try {
-    layout = buildTeams(config);
+    distribuicao = montarEquipes(configuracao);
     return true;
-  } catch (error) {
-    status.textContent = error.message;
+  } catch (erro) {
+    statusSorteio.textContent = erro.message;
     return false;
   }
 };
 
-const reset = () => {
-  hideCompletedDraw();
-  revealed = 0;
-  if (draw()) {
-    status.textContent = '';
-    render();
+const reiniciar = () => {
+  limparResultadoConcluido();
+  equipesReveladas = 0;
+  if (sortear()) {
+    statusSorteio.textContent = '';
+    renderizar();
   }
 };
 
-// --- 6. EVENTOS DOS BOTOES E DOS CODIGOS ---
-document.querySelector('#draw-all').addEventListener('click', () => {
-  if (!draw()) return;
-  revealed = layout.teams.length;
-  status.textContent = 'Sorteio concluído.';
-  render();
-  showCompletedDraw();
+// --- 6. EVENTOS DOS BOTÕES E DOS CÓDIGOS ---
+document.querySelector('#sortear-todos').addEventListener('click', () => {
+  if (!sortear()) return;
+  equipesReveladas = distribuicao.equipes.length;
+  statusSorteio.textContent = 'Sorteio concluído.';
+  renderizar();
+  exibirResultadoConcluido();
 });
 
-document.querySelector('#draw-one').addEventListener('click', () => {
-  if (!layout || revealed === 0 || revealed >= layout.teams.length) {
-    if (!draw()) return;
-    revealed = 0;
+document.querySelector('#sortear-uma-a-uma').addEventListener('click', () => {
+  if (!distribuicao || equipesReveladas === 0 || equipesReveladas >= distribuicao.equipes.length) {
+    if (!sortear()) return;
+    equipesReveladas = 0;
   }
-  hideCompletedDraw();
-  revealed += 1;
-  status.textContent = revealed === layout.teams.length
+  limparResultadoConcluido();
+  equipesReveladas += 1;
+  statusSorteio.textContent = equipesReveladas === distribuicao.equipes.length
     ? 'Sorteio concluído.'
-    : `Equipe ${revealed} sorteada. Clique novamente para a próxima.`;
-  render();
-  if (revealed === layout.teams.length) showCompletedDraw();
+    : `Equipe ${equipesReveladas} sorteada. Clique novamente para a próxima.`;
+  renderizar();
+  if (equipesReveladas === distribuicao.equipes.length) exibirResultadoConcluido();
 });
 
-printButton.addEventListener('click', () => {
-  if (!layout || revealed !== layout.teams.length) {
-    status.textContent = 'Conclua o sorteio para imprimir o resultado.';
+botaoImprimir.addEventListener('click', () => {
+  if (!distribuicao || equipesReveladas !== distribuicao.equipes.length) {
+    statusSorteio.textContent = 'Conclua o sorteio para imprimir o resultado.';
     return;
   }
 
   if (typeof window.print !== 'function') {
-    status.textContent = 'Impressão indisponível neste navegador. Use Ctrl+P ou Cmd+P.';
+    statusSorteio.textContent = 'Impressão indisponível neste navegador. Use Ctrl+P ou Cmd+P.';
     return;
   }
 
-  status.textContent = 'Se a janela de impressão não abrir, use Ctrl+P ou Cmd+P.';
+  statusSorteio.textContent = 'Se a janela de impressão não abrir, use Ctrl+P ou Cmd+P.';
   try {
     window.print();
   } catch {
-    status.textContent = 'Não foi possível abrir a impressão. Use Ctrl+P ou Cmd+P.';
+    statusSorteio.textContent = 'Não foi possível abrir a impressão. Use Ctrl+P ou Cmd+P.';
   }
 });
 
-document.querySelector('#copy-code').addEventListener('click', async () => {
+document.querySelector('#copiar-codigo').addEventListener('click', async () => {
   try {
     if (globalThis.navigator?.clipboard?.writeText) {
-      await navigator.clipboard.writeText(currentSaveCode);
+      await navigator.clipboard.writeText(codigoSalvamentoAtual);
     } else {
-      const temporaryField = document.createElement('textarea');
-      temporaryField.value = currentSaveCode;
-      temporaryField.setAttribute('readonly', '');
-      temporaryField.style.position = 'fixed';
-      temporaryField.style.opacity = '0';
-      document.body.append(temporaryField);
-      temporaryField.select();
-      const copied = document.execCommand('copy');
-      temporaryField.remove();
-      if (!copied) throw new Error('Falha ao copiar');
+      const campoTemporario = document.createElement('textarea');
+      campoTemporario.value = codigoSalvamentoAtual;
+      campoTemporario.setAttribute('readonly', '');
+      campoTemporario.style.position = 'fixed';
+      campoTemporario.style.opacity = '0';
+      document.body.append(campoTemporario);
+      campoTemporario.select();
+      const copiado = document.execCommand('copy');
+      campoTemporario.remove();
+      if (!copiado) throw new Error('Falha ao copiar');
     }
-    copyStatus.textContent = 'Código copiado.';
+    statusCopia.textContent = 'Código copiado.';
   } catch {
-    copyStatus.textContent = 'Não foi possível copiar automaticamente. Selecione e copie o código.';
+    statusCopia.textContent = 'Não foi possível copiar automaticamente. Selecione e copie o código.';
   }
 });
 
-restoreForm.addEventListener('submit', (event) => {
-  event.preventDefault();
+formularioRestauracao.addEventListener('submit', (evento) => {
+  evento.preventDefault();
   try {
-    const code = restoreCode.value.trim().replace(/\s+/g, '');
-    const savedDraw = decodeDraw(code);
-    config = structuredClone(savedDraw.config);
-    layout = structuredClone(savedDraw.layout);
-    revealed = layout.teams.length;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-    render();
-    showCompletedDraw(savedDraw, code);
-    status.textContent = 'Sorteio restaurado.';
-    restoreStatus.textContent = 'Sorteio restaurado com sucesso.';
-  } catch (error) {
-    restoreStatus.textContent = error.message;
+    const codigo = campoCodigoRestauracao.value.trim().replace(/\s+/g, '');
+    const sorteioSalvo = decodificarSorteio(codigo);
+    configuracao = structuredClone(sorteioSalvo.configuracao);
+    distribuicao = structuredClone(sorteioSalvo.distribuicao);
+    equipesReveladas = distribuicao.equipes.length;
+    localStorage.setItem(CHAVE_CONFIGURACAO, JSON.stringify(configuracao));
+    renderizar();
+    exibirResultadoConcluido(sorteioSalvo);
+    statusSorteio.textContent = 'Sorteio restaurado.';
+    statusRestauracao.textContent = 'Sorteio restaurado com sucesso.';
+  } catch (erro) {
+    statusRestauracao.textContent = erro.message;
   }
 });
 
-// --- 7. DIALOGO E VALIDACAO DA CONFIGURACAO ---
-const dialog = document.querySelector('#settings-dialog');
-const classesField = document.querySelector('#cfg-classes');
-const extraField = document.querySelector('#cfg-extra');
-const errorBox = document.querySelector('#settings-error');
+// --- 7. DIÁLOGO E VALIDAÇÃO DA CONFIGURAÇÃO ---
+const dialogo = document.querySelector('#dialogo-configuracao');
+const campoTurmas = document.querySelector('#campo-turmas');
+const campoExtras = document.querySelector('#campo-extras');
+const caixaErro = document.querySelector('#erro-configuracao');
 
-const fillForm = (source) => {
-  classesField.value = source.classes.join('\n');
-  extraField.value = source.extra.join('\n');
-  errorBox.textContent = '';
+const preencherFormulario = (configuracaoOrigem) => {
+  campoTurmas.value = configuracaoOrigem.turmas.join('\n');
+  campoExtras.value = configuracaoOrigem.extras.join('\n');
+  caixaErro.textContent = '';
 };
 
-document.querySelector('#open-settings').addEventListener('click', () => {
-  fillForm(config);
-  dialog.showModal();
+document.querySelector('#abrir-configuracao').addEventListener('click', () => {
+  preencherFormulario(configuracao);
+  dialogo.showModal();
 });
-document.querySelector('#settings-cancel').addEventListener('click', () => dialog.close());
-document.querySelector('#settings-reset').addEventListener('click', () => fillForm(DEFAULT_CONFIG));
+document.querySelector('#cancelar-configuracao').addEventListener('click', () => dialogo.close());
+document.querySelector('#restaurar-padrao').addEventListener('click', () => preencherFormulario(CONFIGURACAO_PADRAO));
 
-document.querySelector('#settings-form').addEventListener('submit', (event) => {
-  event.preventDefault();
-  const classes = parseLines(classesField.value);
-  const extra = parseLines(extraField.value);
-  const invalid = classes.filter((name) => !parseClass(name));
-  const all = [...classes, ...extra].map((name) => name.toUpperCase());
-  const duplicated = all.filter((name, index) => all.indexOf(name) !== index);
-  const problems = [];
+document.querySelector('#formulario-configuracao').addEventListener('submit', (evento) => {
+  evento.preventDefault();
+  const turmas = separarLinhas(campoTurmas.value);
+  const extras = separarLinhas(campoExtras.value);
+  const invalidas = turmas.filter((nome) => !analisarTurma(nome));
+  const nomesConfigurados = [...turmas, ...extras].map((nome) => nome.toUpperCase());
+  const duplicadas = nomesConfigurados.filter((nome, indice) => nomesConfigurados.indexOf(nome) !== indice);
+  const problemas = [];
 
-  if (!classes.length) problems.push('Informe ao menos uma turma.');
-  if (invalid.length) problems.push(`Formato inválido: ${invalid.join(', ')}`);
-  if (duplicated.length) problems.push(`Turmas repetidas: ${[...new Set(duplicated)].join(', ')}`);
+  if (!turmas.length) problemas.push('Informe ao menos uma turma.');
+  if (invalidas.length) problemas.push(`Formato inválido: ${invalidas.join(', ')}`);
+  if (duplicadas.length) problemas.push(`Turmas repetidas: ${[...new Set(duplicadas)].join(', ')}`);
 
-  if (!problems.length) {
+  if (!problemas.length) {
     try {
-      buildTeams({ classes, extra });
-    } catch (error) {
-      problems.push(error.message);
+      montarEquipes({ turmas, extras });
+    } catch (erro) {
+      problemas.push(erro.message);
     }
   }
 
-  if (problems.length) {
-    errorBox.textContent = problems.join('\n');
+  if (problemas.length) {
+    caixaErro.textContent = problemas.join('\n');
     return;
   }
 
-  config = { classes: classes.map((name) => name.toUpperCase()), extra };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
-  dialog.close();
-  reset();
+  configuracao = { turmas: turmas.map((nome) => nome.toUpperCase()), extras };
+  localStorage.setItem(CHAVE_CONFIGURACAO, JSON.stringify(configuracao));
+  dialogo.close();
+  reiniciar();
 });
 
-// --- 8. INICIALIZACAO DA PAGINA ---
-reset();
+// --- 8. INICIALIZAÇÃO DA PÁGINA ---
+reiniciar();

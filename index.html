@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- SPDX-License-Identifier: GPL-3.0-only; copyright and attribution terms: LICENSE and NOTICE. -->
+<!-- SPDX-License-Identifier: GPL-3.0-only; termos de direitos autorais e atribuição: LICENSE e NOTICE. -->
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
@@ -9,13 +9,13 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="page">
-    <header class="page-header">
+  <main class="pagina">
+    <header class="cabecalho-pagina">
       <div>
-        <p class="eyebrow">ORGANIZAÇÃO DE PARTIDAS</p>
+        <p class="sobretitulo">ORGANIZAÇÃO DE PARTIDAS</p>
         <h1>Sorteador de jogos</h1>
       </div>
-      <button class="settings-button" id="open-settings" type="button" aria-label="Configuração" title="Configuração">
+      <button class="botao-configuracao" id="abrir-configuracao" type="button" aria-label="Configuração" title="Configuração">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="3" />
           <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
@@ -23,15 +23,15 @@
       </button>
     </header>
 
-    <section class="actions" aria-label="Opções de sorteio">
-      <button class="action-button action-button--all" id="draw-all" type="button">
+    <section class="acoes-sorteio" aria-label="Opções de sorteio">
+      <button class="botao-acao botao-acao--todos" id="sortear-todos" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M5 5h14v14H5z" />
           <path d="M8 8h.01M16 8h.01M12 12h.01M8 16h.01M16 16h.01" />
         </svg>
         <span>Sortear todos</span>
       </button>
-      <button class="action-button action-button--one" id="draw-one" type="button">
+      <button class="botao-acao botao-acao--um-a-um" id="sortear-uma-a-uma" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M4 6h16M4 12h10M4 18h7" />
           <path d="m17 15 3 3-3 3" />
@@ -39,31 +39,31 @@
         <span>Sortear um a um</span>
       </button>
     </section>
-    <p class="status" id="draw-status" aria-live="polite"></p>
+    <p class="status-sorteio" id="status-sorteio" aria-live="polite"></p>
 
-    <section aria-labelledby="teams-title">
-      <div class="table-heading">
-        <h2 id="teams-title">Equipes e turmas</h2>
-        <span class="team-count" id="team-count"></span>
+    <section aria-labelledby="titulo-equipes">
+      <div class="cabecalho-tabela">
+        <h2 id="titulo-equipes">Equipes e turmas</h2>
+        <span class="quantidade-equipes" id="quantidade-equipes"></span>
       </div>
-      <div class="table-scroll" role="region" aria-label="Tabela de equipes e turmas" tabindex="0">
+      <div class="area-rolagem-tabela" role="region" aria-label="Tabela de equipes e turmas" tabindex="0">
         <table>
           <thead>
-            <tr id="teams-header"></tr>
+            <tr id="cabecalho-equipes"></tr>
           </thead>
-          <tbody id="teams-body"></tbody>
+          <tbody id="corpo-equipes"></tbody>
         </table>
       </div>
     </section>
 
-    <section class="result-tools" id="result-tools" aria-labelledby="result-title">
-      <div class="result-header">
+    <section class="ferramentas-resultado" id="ferramentas-resultado" aria-labelledby="titulo-resultado">
+      <div class="cabecalho-resultado">
         <div>
-          <p class="eyebrow">RESULTADO DO SORTEIO</p>
-          <h2 id="result-title">Imprimir e salvar</h2>
-          <p class="result-date" id="result-date">Disponível ao concluir um sorteio.</p>
+          <p class="sobretitulo">RESULTADO DO SORTEIO</p>
+          <h2 id="titulo-resultado">Imprimir e salvar</h2>
+          <p class="data-resultado" id="data-resultado">Disponível ao concluir um sorteio.</p>
         </div>
-        <button class="btn btn--primary print-button" id="print-result" type="button">
+        <button class="botao botao--principal botao-imprimir" id="imprimir-resultado" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M7 8V3h10v5M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2" />
             <path d="M7 14h10v7H7zM17 11h.01" />
@@ -71,39 +71,39 @@
           <span>Imprimir resultado</span>
         </button>
       </div>
-      <div class="save-code">
+      <div class="codigo-salvamento">
         <div>
-          <label for="draw-code">Código único de salvamento</label>
-          <output class="draw-code-value" id="draw-code">Conclua um sorteio para gerar o código.</output>
+          <label for="codigo-salvamento">Código único de salvamento</label>
+          <output class="valor-codigo-salvamento" id="codigo-salvamento">Conclua um sorteio para gerar o código.</output>
         </div>
-        <button class="btn copy-button" id="copy-code" type="button" disabled>Copiar código</button>
-        <p class="copy-status" id="copy-status" aria-live="polite"></p>
+        <button class="botao botao-copiar-codigo" id="copiar-codigo" type="button" disabled>Copiar código</button>
+        <p class="status-copia" id="status-copia" aria-live="polite"></p>
       </div>
 
-      <form class="restore-form" id="restore-form">
-        <label for="restore-code">Restaurar usando um código salvo</label>
-        <div class="restore-controls">
-          <input id="restore-code" name="restore-code" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" required>
-          <button class="btn btn--primary" type="submit">Restaurar</button>
+      <form class="formulario-restauracao" id="formulario-restauracao">
+        <label for="codigo-restauracao">Restaurar usando um código salvo</label>
+        <div class="controles-restauracao">
+          <input id="codigo-restauracao" name="codigo-restauracao" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+          <button class="botao botao--principal" type="submit">Restaurar</button>
         </div>
-        <p class="restore-status" id="restore-status" aria-live="polite"></p>
+        <p class="status-restauracao" id="status-restauracao" aria-live="polite"></p>
       </form>
     </section>
   </main>
 
-  <dialog class="settings" id="settings-dialog" aria-labelledby="settings-title">
-    <form id="settings-form" method="dialog">
-      <h2 id="settings-title">Configuração</h2>
-      <p class="settings-hint">Informe uma turma por linha no formato <strong>ano + curso + "-" + turno</strong> (ex.: 1ADM-A, 3MAB-B). Anos, cursos e turnos são lidos dessas turmas. Um curso com uma única turma no turno vira uma equipe própria.</p>
-      <label for="cfg-classes">Turmas do sorteio</label>
-      <textarea id="cfg-classes" rows="10" spellcheck="false"></textarea>
-      <label for="cfg-extra">Fora do sorteio (uma por linha, ex.: Ensino Superior)</label>
-      <textarea id="cfg-extra" rows="3" spellcheck="false"></textarea>
-      <p class="settings-error" id="settings-error" role="alert"></p>
-      <div class="settings-actions">
-        <button type="button" class="btn" id="settings-reset">Restaurar padrão</button>
-        <button type="button" class="btn" id="settings-cancel">Cancelar</button>
-        <button type="submit" class="btn btn--primary">Salvar</button>
+  <dialog class="dialogo-configuracao" id="dialogo-configuracao" aria-labelledby="titulo-configuracao">
+    <form id="formulario-configuracao" method="dialog">
+      <h2 id="titulo-configuracao">Configuração</h2>
+      <p class="orientacao-configuracao">Informe uma turma por linha no formato <strong>ano + curso + "-" + turno</strong> (ex.: 1ADM-A, 3MAB-B). Anos, cursos e turnos são lidos dessas turmas. Um curso com uma única turma no turno vira uma equipe própria.</p>
+      <label for="campo-turmas">Turmas do sorteio</label>
+      <textarea id="campo-turmas" rows="10" spellcheck="false"></textarea>
+      <label for="campo-extras">Fora do sorteio (uma por linha, ex.: Ensino Superior)</label>
+      <textarea id="campo-extras" rows="3" spellcheck="false"></textarea>
+      <p class="erro-configuracao" id="erro-configuracao" role="alert"></p>
+      <div class="acoes-configuracao">
+        <button type="button" class="botao" id="restaurar-padrao">Restaurar padrão</button>
+        <button type="button" class="botao" id="cancelar-configuracao">Cancelar</button>
+        <button type="submit" class="botao botao--principal">Salvar</button>
       </div>
     </form>
   </dialog>
